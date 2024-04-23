@@ -11,7 +11,7 @@ class Dataset:
         self.validation = validation
 
     def insert(self, data: tuple):
-        if random.random() < 0.8:
+        if random.random() <= 0.7:
             self.train[0].append(data[0])
             self.train[1].append(data[1])
         else:
