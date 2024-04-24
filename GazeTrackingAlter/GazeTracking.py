@@ -25,10 +25,10 @@ class GazeTracker:
         if len(Landmarks) == 0:
             return None
         Landmarks = LandmarkDetector(frame, Landmarks[0])
-        minx = Landmarks.part(37).x - 5;
-        miny = Landmarks.part(38).y - 5;
-        maxx = Landmarks.part(46).x + 5;
-        maxy = Landmarks.part(47).y + 5;
+        minx = Landmarks.part(37).x - 8
+        miny = Landmarks.part(38).y - 8
+        maxx = Landmarks.part(46).x + 8
+        maxy = Landmarks.part(47).y + 8
         frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
         frame = frame[miny:maxy, minx:maxx]
         frame = cv.resize(frame, (50, 25))

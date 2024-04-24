@@ -21,7 +21,7 @@ TimeWait = 20
 while True:
     ret, frame = Camera.read()
     x, y = pa.position()
-    # cv.imshow("Eye Tracking", frame)
+    cv.imshow("Eye Tracking", frame)
     if kb.is_pressed('space') and TimeWait >= 20:
         GT.insert(frame, (x, y))
         TimeWait = 0

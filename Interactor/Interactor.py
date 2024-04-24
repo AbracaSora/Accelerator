@@ -12,13 +12,13 @@ import os
 
 width, height = pa.size()
 GT = GazeTracker()
-trained = False
+isTrained = False
 # screen = pg.display.set_mode((width, height))
 TimeWait = 20
+Cam = cv.VideoCapture(0)
 
 Interactor = Flask(__name__)
 CORS(Interactor)
-socketio = SocketIO(Interactor, cors_allowed_origins="*", protocol_version=3)
 # 临时保存图片的文件夹
 UPLOAD_FOLDER = 'temp'
 if not os.path.exists(UPLOAD_FOLDER):
@@ -58,12 +58,31 @@ def get_image_list():
 
 @Interactor.route('/Camera', methods=['POST'])
 def Camera():
-    file = request.json['image']
-    if not file:
-        return 'No Image Uploaded.', 400
-    file = base64.b64decode(file[22:])
-    file_array = np.frombuffer(file, np.uint8)
-    frame = cv.imdecode(file_array, cv.IMREAD_COLOR)
-    cv.imshow("Camera", frame)
-    cv.imwrite("temp/Camera.jpg", frame)
-    return 'Image Received.', 200
+    global isTrained
+    flag = request.json['isDataset']
+    ret, frame = Cam.read()
+    response = {
+        'isTrained': isTrained,
+        'size': 0,
+        'position': {
+            'x': 0,
+            'y': 0
+        },
+        'action': ''
+    }
+    if flag and not isTrained:
+        x, y = pa.position()
+        GT.insert(frame, (x, y))
+        response['size'] = GT.Dataset.size
+        if GT.Dataset.size == 20:
+            GT.train()
+            isTrained = True
+    elif isTrained:
+        x, y = GT.predict(frame)
+        x = (x + 1) / 2 * width
+        y = (y + 1) / 2 * height
+        x, y = map(int, (x, y))
+        response['size'] = GT.Dataset.size
+        response['position']['x'] = x
+        response['position']['y'] = y
+    return json.dumps(response), 200
