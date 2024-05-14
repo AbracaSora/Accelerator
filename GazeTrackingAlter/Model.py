@@ -1,17 +1,22 @@
 from keras import Sequential, regularizers, optimizers
 from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, Input
+from keras.models import load_model
 
-Model = Sequential(name="Accelerator")
 
-Model.add(Input(shape=(25, 50, 3)))
-Model.add(Conv2D(20, 5, activation='relu'))
-Model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-Model.add(Flatten())
-Model.add(Dropout(0.2))
-Model.add(Dense(2, activation='tanh'))
+def NewModel():
+    Model = Sequential(name="Accelerator")
 
-Adam = optimizers.Adam(learning_rate=0.005)
-Model.compile(optimizer=Adam, loss='mean_squared_error', metrics=['accuracy'])
+    Model.add(Input(shape=(25, 50, 3)))
+    Model.add(Conv2D(20, 5, activation='relu'))
+    Model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+    Model.add(Flatten())
+    Model.add(Dropout(0.2))
+    Model.add(Dense(2, activation='tanh'))
+
+    Adam = optimizers.Adam(learning_rate=0.005)
+    Model.compile(optimizer=Adam, loss='mean_squared_error', metrics=['accuracy'])
+
+    return Model
 
 # Model.add(Input(shape=(25, 50, 3)))
 # Model.add(Conv2D(32, (3, 3), activation='relu'))

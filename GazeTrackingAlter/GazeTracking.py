@@ -4,11 +4,10 @@ import numpy as np
 import pyautogui as pa
 import cv2 as cv
 import dlib as dl
-from PIL import Image, ImageOps
-from keras.preprocessing.image import img_to_array
-from GazeTrackingAlter.Model import Model
+from GazeTrackingAlter.Model import *
 from GazeTrackingAlter.Dataset import Dataset
 
+width, height = pa.size()
 FaceDetector = dl.get_frontal_face_detector()
 LandmarkDetector = dl.shape_predictor('GazeTrackingAlter/model/shape_predictor_68_face_landmarks.dat')
 
@@ -16,8 +15,14 @@ LandmarkDetector = dl.shape_predictor('GazeTrackingAlter/model/shape_predictor_6
 class GazeTracker:
     def __init__(self):
         self.frame = None
-        self.model = Model
+        self.model = NewModel()
         self.Dataset = Dataset()
+
+    def load(self):
+        self.model = load_model('GazeTrackingAlter/model/Accelerator.h5')
+
+    def save(self):
+        self.model.save('GazeTrackingAlter/model/Accelerator.h5')
 
     @staticmethod
     def preprocess(frame):
@@ -39,14 +44,16 @@ class GazeTracker:
         frame = self.preprocess(frame)
         if frame is None:
             return
-        mouse_pos = np.array([
-            mouse_pos[0] / pa.size()[0] * 2 - 1,
-            mouse_pos[1] / pa.size()[1] * 2 - 1
-        ]
+        mouse_pos = np.array(
+            [
+                mouse_pos[0] / pa.size()[0] * 2 - 1,
+                mouse_pos[1] / pa.size()[1] * 2 - 1
+            ]
         )
         print(mouse_pos)
         frame = frame.astype(np.float32) / 255.
         self.Dataset.insert((np.expand_dims(frame, axis=0), mouse_pos))
+        return self.Dataset.size
 
     def train(self):
         tr_x = np.concatenate(self.Dataset.train[0], axis=0)
@@ -59,13 +66,16 @@ class GazeTracker:
         elif bs > 64:
             bs = 64
         self.model.fit(tr_x, tr_y, epochs=20, batch_size=bs, validation_data=[val_x, val_y])
+        self.save()
 
     def predict(self, frame):
         frame = self.preprocess(frame)
         if frame is None:
             return 0, 0
         frame = frame.astype(np.float32) / 255.
-        x,y = self.model.predict(np.expand_dims(frame, axis=0))[0]
-        # print(prediction)
+        x, y = self.model.predict(np.expand_dims(frame, axis=0))[0]
         print(x, y)
+        x = (x + 1) / 2 * width
+        y = (y + 1) / 2 * height
+        x, y = map(int, (x, y))
         return x, y
