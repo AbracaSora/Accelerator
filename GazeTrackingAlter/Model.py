@@ -4,6 +4,11 @@ from keras.models import load_model
 
 
 def NewModel():
+    """
+    :return: Model
+
+    创建新的模型
+    """
     Model = Sequential(name="Accelerator")
 
     Model.add(Input(shape=(25, 50, 3)))

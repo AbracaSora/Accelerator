@@ -34,6 +34,5 @@ def recognize(image):
     cTime = time.time()
     fps_text = 1 / (cTime - fpsTime)
     fpsTime = cTime
-    cv2.imshow('Video', img)
     c += 1
     return action_zh

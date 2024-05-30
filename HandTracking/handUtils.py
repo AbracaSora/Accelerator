@@ -122,7 +122,6 @@ class HandProcess():
         upList = []
         if len(self.landmark_list) == 0:
             return upList
-
         # 拇指，比较x坐标
         if self.landmark_list[fingerTipIndexs[0]][1] < self.landmark_list[fingerTipIndexs[0] - 1][1]:
             upList.append(1)
