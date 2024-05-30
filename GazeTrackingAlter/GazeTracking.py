@@ -28,7 +28,7 @@ class GazeTracker:
         """
         self.model = load_model('GazeTrackingAlter/model/Accelerator.h5')
 
-    # 保存模型
+    # 保存模型 TODO: 预训练较为准确的模型,作为初始模型
     def save(self):
         """
         :return: None

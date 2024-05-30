@@ -13,6 +13,7 @@ c = 1
 frameRate = 10  # 帧数截取间隔（每隔100帧截取一帧）
 
 
+# TODO: 更新手势识别,优化识别逻辑,提高识别效率和操作效率
 def recognize(image):
     global c
     global fpsTime
