@@ -2,7 +2,10 @@ from flask import Flask, send_file, request
 from flask_cors import CORS
 from GazeTrackingAlter import GazeTracker
 from HandTracking import *
+
+import base64
 import pyautogui as pa
+import numpy as np
 import cv2 as cv
 import json
 import os
@@ -104,7 +107,8 @@ def Camera():
             'x': x / pa.size()[0] * 100,
             'y': y / pa.size()[1] * 100
         },
-        'action': action
+        'action': action,
+        'frame': send_file(frame)
     }
     return json.dumps(response), 200
 
@@ -134,3 +138,23 @@ def Train():
         'action': ''
     }
     return json.dumps(response), 200
+
+
+@Interactor.route('/SaveImage', methods=['POST'])
+def SaveImage():
+    """
+    :return: 保存图片的结果
+
+    保存图片, 保存成功返回200, 保存失败返回500
+    """
+    imgBlob = request.get_data()
+    imgBlob = json.loads(imgBlob)
+    imgB64 = base64.b64decode(imgBlob['imgBlobData'][23:])
+    img = cv.imdecode(np.frombuffer(imgB64, np.uint8), cv.IMREAD_COLOR)
+    print(img)
+    try:
+        cv.imwrite('temp/img.jpg', img)
+    except Exception as e:
+        print(e)
+        return str(e), 500
+    return 'Image saved successfully.', 200

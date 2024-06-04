@@ -1,11 +1,14 @@
 import math
+import sys
+
 import numpy as np
 import cv2
 import mediapipe as mp
 from HandTracking.utils import Utils
 
+
 class HandProcess():
-    def __init__(self,static_image_mode=False,max_num_hands=2):
+    def __init__(self, static_image_mode=False, max_num_hands=2):
         # 参数
         self.mp_drawing = mp.solutions.drawing_utils  # 初始化medialpipe的画图函数
         self.mp_drawing_styles = mp.solutions.drawing_styles
@@ -22,7 +25,7 @@ class HandProcess():
             'none': '无',
             'scroll_up': '向前翻页',
             'scroll_down': '向后翻页',
-            'control_up':'放大',
+            'control_up': '放大',
             'control_down': '缩小',
         }
         self.action_deteted = ''
@@ -30,14 +33,15 @@ class HandProcess():
         self.l0 = 100
 
         # 检查左右手在数组中的index
+
     def checkHandsIndex(self, handedness):
-            # 判断数量
+        # 判断数量
         if len(handedness) == 1:
-                handedness_list = [handedness[0].classification[0].label]
+            handedness_list = [handedness[0].classification[0].label]
         else:
-                handedness_list = [handedness[0].classification[0].label, handedness[1].classification[0].label]
+            handedness_list = [handedness[0].classification[0].label, handedness[1].classification[0].label]
         return
-            # 计算两点点的距离
+        # 计算两点点的距离
 
     def getDistance(self, pointA, pointB):
         # math.hypot为勾股定理计算两点长度的函数，得到食指和拇指的距离
@@ -46,12 +50,12 @@ class HandProcess():
         # 获取手指在图像中的坐标
 
     def getFingerXY(self, index):
-        return (self.landmark_list[index][1], self.landmark_list[index][2])
+        return self.landmark_list[index][1], self.landmark_list[index][2]
 
         # 将手势识别的结果绘制到图像上，根据不同的识别结果展示不同的绘制方式
 
     def drawInfo(self, img, action):
-        thumbXY, indexXY= map(self.getFingerXY, [4, 8])
+        thumbXY, indexXY = map(self.getFingerXY, [4, 8])
 
         if action == 'control_up':
             img = cv2.circle(img, thumbXY, 20, (255, 0, 255), -1)
@@ -64,6 +68,7 @@ class HandProcess():
         return img
 
         # 返回手掌各种动作
+
     def checkHandAction(self, img, drawKeyFinger=True):
         upList = self.checkFingersUp()
         action = 'none'
@@ -78,20 +83,20 @@ class HandProcess():
         key_point = self.getFingerXY(8)
 
         # 向上滑：五指向上
-        if (upList == [1, 1, 1, 1, 1]):
+        if upList == [1, 1, 1, 1, 1]:
             action = 'scroll_up'
 
         # 向下滑：除拇指外四指向上
-        if (upList == [0, 1, 1, 1, 1]):
+        if upList == [0, 1, 1, 1, 1]:
             action = 'scroll_down'
-         # 放大或者缩小：食指与拇指出现暂停移动，如果两指相互靠近，触发放大，如果相互远离，触发缩小
-        if (upList == [1, 1, 0, 0, 0]):
+        # 放大或者缩小：食指与拇指出现暂停移动，如果两指相互靠近，触发放大，如果相互远离，触发缩小
+        if upList == [1, 1, 0, 0, 0]:
             l1 = self.getDistance(self.getFingerXY(4), self.getFingerXY(8))
-            if l1-self.l0>0:
+            if l1 - self.l0 > 0:
                 action = 'control_up'
-            elif l1-self.l0<0:
+            elif l1 - self.l0 < 0:
                 action = 'control_down'
-            self.l0=l1
+            self.l0 = l1
             # 获取展示放大缩小效果
             min_volume = 100
             max_volume = 1
@@ -106,9 +111,7 @@ class HandProcess():
             image = cv2.rectangle(img, (30, 100), (70, 300), (255, 0, 0), 3)
             image = cv2.rectangle(image, (30, math.ceil(300 - rect_height)), (70, 300), (255, 0, 0), -1)
 
-
-
-                # 根据动作绘制相关点
+            # 根据动作绘制相关点
         img = self.drawInfo(img, action) if drawKeyFinger else img
 
         self.action_deteted = self.action_labels[action]
@@ -116,6 +119,7 @@ class HandProcess():
         return img, action, key_point
 
         # 返回向上手指的数组
+
     def checkFingersUp(self):
 
         fingerTipIndexs = [4, 8, 12, 16, 20]
@@ -169,14 +173,15 @@ class HandProcess():
                 # 框框和label
                 if drawBox:
                     x_min, x_max = min(self.landmark_list, key=lambda i: i[1])[1], \
-                    max(self.landmark_list, key=lambda i: i[1])[1]
+                        max(self.landmark_list, key=lambda i: i[1])[1]
                     y_min, y_max = min(self.landmark_list, key=lambda i: i[2])[2], \
-                    max(self.landmark_list, key=lambda i: i[2])[2]
+                        max(self.landmark_list, key=lambda i: i[2])[2]
                     img = cv2.rectangle(img, (x_min - 30, y_min - 30), (x_max + 30, y_max + 30), (0, 255, 0), 2)
                     img = utils.cv2AddChineseText(img, self.action_deteted, (x_min - 20, y_min - 120),
-                                                      textColor=(255, 0, 255), textSize=60)
+                                                  textColor=(255, 0, 255), textSize=60)
 
         return img
+
     def process(self, img, draw=True):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         self.hands_data = self.hand_detector.process(img_rgb)
@@ -203,10 +208,10 @@ class HandProcess():
 
     def fingers_count(self, hand='Left'):
         tips = [4, 8, 12, 16, 20]
-        tip_data = {4:0, 8:0, 12:0, 16:0, 20:0}
+        tip_data = {4: 0, 8: 0, 12: 0, 16: 0, 20: 0}
         for tip in tips:
             ltp1 = self.position[hand].get(tip, None)
-            ltp2 = self.position[hand].get(tip-2, None)
+            ltp2 = self.position[hand].get(tip - 2, None)
             if ltp1 and ltp2:
                 if tip == 4:
                     if ltp1[0] > ltp2[0]:
