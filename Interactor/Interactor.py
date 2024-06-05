@@ -1,7 +1,10 @@
 from flask import Flask, send_file, request
 from flask_cors import CORS
+
+import GemeniAI
 from GazeTrackingAlter import GazeTracker
 from HandTracking import *
+from GemeniAI import *
 
 import base64
 import pyautogui as pa
@@ -9,7 +12,11 @@ import numpy as np
 import cv2 as cv
 import json
 import os
+import signal
+import atexit
+import shutil
 
+mem = (0,0)
 width, height = pa.size()  # 获取屏幕的宽高
 GT = GazeTracker()  # 创建GazeTracker对象
 isTrained = False  # 是否训练
@@ -22,6 +29,28 @@ CORS(Interactor)  # 允许跨域
 UPLOAD_FOLDER = 'temp'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+
+# 定义释放摄像头资源的函数
+def release_camera():
+    global Cam
+    if Cam.isOpened():
+        Cam.release()
+    cv.destroyAllWindows()
+
+
+# 捕捉终止信号并释放摄像头
+def signal_handler(signal, frame):
+    release_camera()
+    shutil.rmtree("temp")
+    print('Application closed, camera released.')
+
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+# 注册atexit以在正常退出时释放摄像头
+atexit.register(release_camera)
 
 
 # 上传图片的路由
@@ -96,10 +125,13 @@ def Camera():
 
     返回摄像头的结果, 包括是否训练, 数据集大小, 鼠标位置, 动作
     """
-    global isTrained
+    global isTrained, mem
     ret, frame = Cam.read()
     x, y = GT.predict(frame)
-    action = recognize(frame)
+    action,frame = recognize(frame)
+    print(action)
+    if action == '识别':
+        mem = (x / pa.size()[0], y / pa.size()[1])
     _, buffer = cv.imencode('.jpg', frame)
     frame_bytes = buffer.tobytes()
     encoded = base64.b64encode(frame_bytes).decode('utf-8')
@@ -153,11 +185,21 @@ def SaveImage():
     imgBlob = request.get_data()
     imgBlob = json.loads(imgBlob)
     imgB64 = base64.b64decode(imgBlob['img'][23:])
+    Position = {
+        'x': mem[0],
+        'y': mem[1]
+    }
     img = cv.imdecode(np.frombuffer(imgB64, np.uint8), cv.IMREAD_COLOR)
-    print(img)
+    Position = (int(Position['x'] * img.shape[0])), int(Position['y'] * img.shape[1])
+
+    # 截取一个矩形
+    x, y = Position
+    h, w = 100, 100
+    u, d, l, r = max(0, x - h // 2), min(img.shape[0], x + h // 2), max(0, y - w // 2), min(img.shape[1], y + w // 2)
+    img = img[u:d, l:r]
     try:
         cv.imwrite('temp/img.jpg', img)
+        text = Gemini().generate(PIL.Image.fromarray(cv.cvtColor(img,cv.COLOR_BGR2RGB)), '这是什么?')
+        return text, 200
     except Exception as e:
-        print(e)
         return str(e), 500
-    return 'Image saved successfully.', 200

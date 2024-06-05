@@ -28,7 +28,7 @@ def recognize(image):
     h, w, c = img.shape
     img = handprocess.processOneHand(img)
     # 调用手势识别文件获取手势动作
-    img, action, key_point = handprocess.checkHandAction(img, drawKeyFinger=True)
+    img, action, keyPointData = handprocess.checkHandAction(img, drawKeyFinger=True)
     # 通过手势识别得到手势动作，将其画在图像上显示
     action_zh = handprocess.action_labels[action]  # 获取识别出来的手势 例使用if action_zh == '动作1'：进行使用识别结果
     # 显示刷新率FPS
@@ -36,4 +36,4 @@ def recognize(image):
     fps_text = 1 / (cTime - fpsTime)
     fpsTime = cTime
     c += 1
-    return action_zh
+    return action_zh, img

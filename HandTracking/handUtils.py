@@ -1,5 +1,6 @@
 import math
 import sys
+import time
 
 import numpy as np
 import cv2
@@ -27,12 +28,13 @@ class HandProcess():
             'scroll_down': '向后翻页',
             'control_up': '放大',
             'control_down': '缩小',
+            'identify':'识别'
         }
         self.action_deteted = ''
         # 上一帧的拇指和中指距离距离
         self.l0 = 100
-
-        # 检查左右手在数组中的index
+        self.last_action_time = {'scroll_up': 0, 'scroll_down': 0, 'identify': 0}  # 添加一个字典来记录每个操作的上次执行时间戳
+        self.action_cooldown = {'scroll_up': 0.5, 'scroll_down': 0.5, 'identify': 5}  # 定义动作间隔时间
 
     def checkHandsIndex(self, handedness):
         # 判断数量
@@ -54,7 +56,7 @@ class HandProcess():
 
         # 将手势识别的结果绘制到图像上，根据不同的识别结果展示不同的绘制方式
 
-    def drawInfo(self, img, action):
+    def drawInfo(self, img, action, flag):
         thumbXY, indexXY = map(self.getFingerXY, [4, 8])
 
         if action == 'control_up':
@@ -70,11 +72,19 @@ class HandProcess():
         # 返回手掌各种动作
 
     def checkHandAction(self, img, drawKeyFinger=True):
+        current_time = time.time()  # 获取当前时间
         upList = self.checkFingersUp()
         action = 'none'
+        flag = 0
+        keyPointData = []  # 存储手部关键点数据的列表
 
         if len(upList) == 0:
-            return img, action, None
+            return img, action, keyPointData
+
+        # 在检测到动作时，构建手部关键点数据
+        for landmark in self.landmark_list:
+            landmark_id, p_x, p_y, _ = landmark
+            keyPointData.append((p_x, p_y))  # 添加手部关键点的坐标信息到列表中
 
         # 侦测距离
         dete_dist = 100
@@ -85,38 +95,47 @@ class HandProcess():
         # 向上滑：五指向上
         if upList == [1, 1, 1, 1, 1]:
             action = 'scroll_up'
+            flag =1
 
         # 向下滑：除拇指外四指向上
         if upList == [0, 1, 1, 1, 1]:
             action = 'scroll_down'
-        # 放大或者缩小：食指与拇指出现暂停移动，如果两指相互靠近，触发放大，如果相互远离，触发缩小
+            flag = 1
+
+        # 识别：食指和中指向上
+        if upList == [0, 1, 1, 0, 0]:
+            action = 'identify'
+            flag = 1
+
+        # 放大或者缩小：食指与拇指出现暂停移动，如果两指相互靠近，触发缩小，如果相互远离，触发放大
         if upList == [1, 1, 0, 0, 0]:
             l1 = self.getDistance(self.getFingerXY(4), self.getFingerXY(8))
-            if l1 - self.l0 > 0:
+            if l1 > 120:
                 action = 'control_up'
-            elif l1 - self.l0 < 0:
+                flag = 1
+            elif l1 < 50:
                 action = 'control_down'
-            self.l0 = l1
+                flag = 1
+            #self.l0 = l1
             # 获取展示放大缩小效果
             min_volume = 100
             max_volume = 1
-            # 指尖长度映射
-            vol = np.interp(l1, [50, 300], [min_volume, max_volume])
-            # 将指尖长度映射到矩形显示上
-            rect_height = np.interp(l1, [50, 300], [0, 200])
-            rect_percent_text = np.interp(l1, [50, 300], [0, 100])
-            # 显示矩形
-            cv2.putText(img, str(math.ceil(rect_percent_text)) + "%", (10, 350),
-                        cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
-            image = cv2.rectangle(img, (30, 100), (70, 300), (255, 0, 0), 3)
-            image = cv2.rectangle(image, (30, math.ceil(300 - rect_height)), (70, 300), (255, 0, 0), -1)
+
+        if action in self.action_cooldown and current_time - self.last_action_time[action] < self.action_cooldown[
+            action]:
+            flag = 0
+
+        if flag != 0:
+            self.last_action_time[action] = current_time  # 更新该操作的上次执行时间戳
 
             # 根据动作绘制相关点
-        img = self.drawInfo(img, action) if drawKeyFinger else img
-
+        img = self.drawInfo(img, action, flag) if drawKeyFinger else img
         self.action_deteted = self.action_labels[action]
 
-        return img, action, key_point
+        if flag == 0:
+            action = 'none'
+
+        return img, action, keyPointData
 
         # 返回向上手指的数组
 
