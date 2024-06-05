@@ -3,10 +3,20 @@ import random
 
 class Dataset:
     def __init__(self):
+        """
+        初始化数据集
+        """
         self.train = ([], [])
         self.validation = ([], [])
 
     def load(self, train, validation):
+        """
+        :param train:  训练集
+        :param validation:  验证集
+        :return:  None
+
+        加载数据集
+        """
         self.train = train
         self.validation = validation
 
@@ -26,4 +36,7 @@ class Dataset:
 
     @property
     def size(self):
+        """
+        :return: 数据集大小
+        """
         return len(self.train[0])

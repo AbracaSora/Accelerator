@@ -175,8 +175,8 @@ def Train():
     return json.dumps(response), 200
 
 
-@Interactor.route('/SaveImage', methods=['POST'])
-def SaveImage():
+@Interactor.route('/Identify', methods=['POST'])
+def Identify():
     """
     :return: 保存图片的结果
 
@@ -194,12 +194,12 @@ def SaveImage():
 
     # 截取一个矩形
     x, y = Position
-    h, w = 100, 100
+    h, w = 200, 200
     u, d, l, r = max(0, x - h // 2), min(img.shape[0], x + h // 2), max(0, y - w // 2), min(img.shape[1], y + w // 2)
     img = img[u:d, l:r]
     try:
         cv.imwrite('temp/img.jpg', img)
-        text = Gemini().generate(PIL.Image.fromarray(cv.cvtColor(img,cv.COLOR_BGR2RGB)), '这是什么?')
+        text = Gemini().generate(PIL.Image.fromarray(cv.cvtColor(img,cv.COLOR_BGR2RGB)), '这是什么?请用中文回答。')
         return text, 200
     except Exception as e:
         return str(e), 500
