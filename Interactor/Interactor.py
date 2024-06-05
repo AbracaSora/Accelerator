@@ -100,6 +100,9 @@ def Camera():
     ret, frame = Cam.read()
     x, y = GT.predict(frame)
     action = recognize(frame)
+    _, buffer = cv.imencode('.jpg', frame)
+    frame_bytes = buffer.tobytes()
+    encoded = base64.b64encode(frame_bytes).decode('utf-8')
     response = {
         'isTrained': isTrained,
         'size': GT.Dataset.size,
@@ -108,7 +111,7 @@ def Camera():
             'y': y / pa.size()[1] * 100
         },
         'action': action,
-        'frame': send_file(frame)
+        'frame': encoded
     }
     return json.dumps(response), 200
 
@@ -149,7 +152,7 @@ def SaveImage():
     """
     imgBlob = request.get_data()
     imgBlob = json.loads(imgBlob)
-    imgB64 = base64.b64decode(imgBlob['imgBlobData'][23:])
+    imgB64 = base64.b64decode(imgBlob['img'][23:])
     img = cv.imdecode(np.frombuffer(imgB64, np.uint8), cv.IMREAD_COLOR)
     print(img)
     try:
